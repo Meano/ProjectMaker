@@ -1,0 +1,102 @@
+#!/bin/bash
+CurrentDir=$(dirname $(readlink -f "$0"))
+ProjectName=$1
+CustomTags=$2
+CustomFiles=$3
+
+function FindFiles() {
+    set -f
+    findCommand="find $1 -type f"
+    IFS=$'|'
+    matches=($2)
+    for match in ${matches[@]}; do
+        findCommand=$findCommand"  ! -path './$match'"
+    done
+    echo $(eval $findCommand)
+    set +f
+}
+
+if [[ $ProjectName == */ ]];then
+    ProjectName=${ProjectName%/}
+fi
+
+if [ ! -d "$CurrentDir/$ProjectName" ]||[ "$CustomTags" == "" ]||[ "$CustomFiles" == "" ];then
+    echo "usage: $0 <ProjectName> <CustomTags> <CustomFiles>"
+    exit 1
+fi
+
+BuildTag = "Artifact"
+
+ProjectDir=$CurrentDir/$ProjectName
+ConfigProjectDir=$CurrentDir/$ProjectName-$BuildTag
+
+echo $ProjectDir
+cd $ProjectDir
+ProjectFiles=$(FindFiles . "$CustomFiles")
+
+IFS=$'\n' ProjectFiles=($ProjectFiles)
+for ProjectFile in ${ProjectFiles[@]};
+do
+    ProjectFile=${ProjectFile/.\//}
+
+    if [ -d "$ProjectFile" ]; then
+        continue;
+    fi
+
+    echo "Makeing $ProjectFile ..."
+
+    ConfigProjectFile=$ConfigProjectDir/$ProjectFile
+    ConfigProjectFileDir=${ConfigProjectFile%/*}/
+    mkdir -p "$ConfigProjectFileDir"
+
+    SedCommand="sed"
+    IFS=$'|'
+    case $ProjectFile in
+        Cryptography*)
+            cp "$ProjectFile" "$ConfigProjectFile"
+            ;;
+        *.c|\
+        *.h|\
+        *.cs)
+            for tag in $CustomTags
+            do
+                SedCommand=$SedCommand" -e '/[[:space:]]*#if $tag[[:space:]]*$/,/[[:space:]]*#endif[[:space:]/]*$tag[[:space:]]*$/d'"
+            done
+            ;;
+        *.uvproj|\
+        *.uvprojx|\
+        *.xaml|\
+        *.xml)
+            for tag in $CustomTags
+            do
+                SedCommand=$SedCommand" -e '/[[:space:]]*<!--$tag\.S-->/{:Start$tag;/[[:space:]]*<!--$tag\.E-->/!{ N; b Start$tag;};s/<!--$tag\.S-->.*<!--$tag\.E-->//g;}'"
+            done
+            ;;
+        *.sln)
+            for tag in $CustomTags
+            do
+                SedCommand=$SedCommand" -e '/^[[:space:]]*# $tag.S/,/^[[:space:]]*# $tag.E/d'"
+            done
+            ;;
+        *.csproj)
+            for tag in $CustomTags
+            do
+                SedCommand=$SedCommand" -e '/[[:space:]]*<!--$tag\.S-->/{:Start$tag;/[[:space:]]*<!--$tag\.E-->/!{ N; b Start$tag;};s/<!--$tag\.S-->.*<!--$tag\.E-->//g;}'"
+            done
+            ;;
+        *)
+            cp "$ProjectFile" "$ConfigProjectFile"
+            continue
+            ;;
+    esac
+    SedCommand=$SedCommand" \"$ProjectFile\""
+    eval $SedCommand > "$ConfigProjectFile"
+    if [[ ! -s "$ConfigProjectFile" ]]; then
+        rm "$ConfigProjectFile"
+    fi
+    # echo $ProjectFile
+done
+
+echo "Project make done!"
+
+exit 0
