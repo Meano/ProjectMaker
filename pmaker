@@ -1,5 +1,5 @@
 #!/bin/bash
-CurrentDir=$(dirname $(readlink -f "$0"))
+CurrentDir=$(pwd)
 ProjectName=$1
 CustomTags=$2
 CustomFiles=$3
