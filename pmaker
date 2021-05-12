@@ -3,6 +3,7 @@ CurrentDir=$(pwd)
 ProjectName=$1
 CustomTags=$2
 CustomFiles=$3
+BuildTag=$4
 
 function FindFiles() {
     set -f
@@ -21,11 +22,13 @@ if [[ $ProjectName == */ ]];then
 fi
 
 if [ ! -d "$CurrentDir/$ProjectName" ]||[ "$CustomTags" == "" ]||[ "$CustomFiles" == "" ];then
-    echo "usage: $0 <ProjectName> <CustomTags> <CustomFiles>"
+    echo "usage: $0 <ProjectName> <CustomTags> <CustomFiles> [BuildTag]"
     exit 1
 fi
 
-BuildTag = "Artifact"
+if [ "$BuildTag" == "" ]; then
+    BuildTag = "Artifact"
+fi
 
 ProjectDir=$CurrentDir/$ProjectName
 ConfigProjectDir=$CurrentDir/$ProjectName-$BuildTag
