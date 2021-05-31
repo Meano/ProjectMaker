@@ -4,6 +4,7 @@ ProjectName=$1
 CustomTags=$2
 CustomFiles=$3
 BuildTag=$4
+KeepTag=$5
 
 function FindFiles() {
     set -f
@@ -22,7 +23,7 @@ if [[ $ProjectName == */ ]];then
 fi
 
 if [ ! -d "$CurrentDir/$ProjectName" ]||[ "$CustomTags" == "" ]||[ "$CustomFiles" == "" ];then
-    echo "usage: $0 <ProjectName> <CustomTags> <CustomFiles> [BuildTag]"
+    echo "usage: $0 <ProjectName> <CustomTags> <CustomFiles> [BuildTag] [KeepTag]"
     exit 1
 fi
 
@@ -31,7 +32,11 @@ if [ "$BuildTag" == "" ]; then
 fi
 
 ProjectDir=$CurrentDir/$ProjectName
-ConfigProjectDir=$CurrentDir/$ProjectName-$BuildTag
+if [[ $KeepTag =~ n ]]; then
+    ConfigProjectDir=$CurrentDir/$BuildTag
+else
+    ConfigProjectDir=$CurrentDir/$ProjectName-$BuildTag
+fi
 
 echo $ProjectDir
 cd $ProjectDir
@@ -74,6 +79,9 @@ do
             do
                 SedCommand=$SedCommand" -e '/[[:space:]]*<!--$tag\.S-->/{:Start$tag;/[[:space:]]*<!--$tag\.E-->/!{ N; b Start$tag;};s/<!--$tag\.S-->.*<!--$tag\.E-->//g;}'"
             done
+            if [[ $KeepTag =~ t ]]; then :; else
+                SedCommand=$SedCommand" -e 's/<!--[^\.]*.[SE]-->//g'"
+            fi
             ;;
         *.sln)
             for tag in $CustomTags

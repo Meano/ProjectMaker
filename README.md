@@ -17,5 +17,5 @@
 
 ## Usage: 
 ```bash
-pmake <ProjectName> <CustomTags> <CustomFiles> [BuildTag]
+pmake <ProjectName> <CustomTags> <CustomFiles> [BuildTag] [KeepTag]
 ```
